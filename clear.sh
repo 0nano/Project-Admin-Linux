@@ -7,3 +7,7 @@ do
 done < <(tail -n +2 accounts.csv)
 
 rm -rf /home/shared/
+
+touch clear
+crontab clear
+rm clear

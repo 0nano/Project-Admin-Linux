@@ -1,5 +1,11 @@
 #!/bin/bash
 
+echo "Avant de démarrer la création des comptes, veuillez reseigner l'identifiant pour la connexion SSH ainsi que la clé à utiliser."
+read -p "Entrez l'IP du serveur : " sship
+read -p "Entrez l'identifiant : " sshlogin
+read -p "Entrez la clef ssh à utiliser (mettez l'adresse depuis le dossier racine) : " sshkey
+echo
+
 echo "Avant de démarrer la création des comptes, veuillez entrer les informations pour l'envoi du mail."
 read -p "Entrez l'adresse du serveur SMTP : " adresse
 read -p "Entrez le login du compte : " superlogin
@@ -60,5 +66,13 @@ do
     fi
 
     # On envoi le mail avec les informations de connexion pour l'utilisateur
-    ssh -n -i /home/isen/isen mlaure25@10.30.48.100 "mail --subject \"Information de connexion\" --exec \"set sendmail=smtp://$(echo ${superlogin/@/%40}):$superpassword@$adresse:587\" --append \"From:$superlogin\" maxence.laurent@isen-ouest.yncrea.fr <<< $(echo -e \"Bonjour, Vous avez recu ce mail pour vous donner les informations de connexion a votre session. Je vous informe que le mot de passe qui vous est fourni ici devra etre change a la premiere connexion en cas de perte, veuillez contacter l administrateur. login = $login \| Mot de passe = $password \| Cordialement, L administrateur\")"
+    # ssh -n -i $sshkey $sshlogin@$sship "mail --subject \"Information de connexion\" --exec \"set sendmail=smtp://$(echo ${superlogin/@/%40}):$superpassword@$adresse:587\" --append \"From:$superlogin\" maxence.laurent@isen-ouest.yncrea.fr <<< $(echo -e \"Bonjour, Vous avez recu ce mail pour vous donner les informations de connexion a votre session. Je vous informe que le mot de passe qui vous est fourni ici devra etre change a la premiere connexion en cas de perte, veuillez contacter l administrateur. login = $login \| Mot de passe = $password \| Cordialement, L administrateur\")"
+    
+    # On active la sauvegarde du dossir a_sauver pour chaque utilisateur
+    # https://stackoverflow.com/questions/878600/how-to-create-a-cron-job-using-bash-automatically-without-the-interactive-editor
+    crontab -l > newcron
+    echo "0 23 * * 1-5 tar czvf /home/$login/sauve_$login.tgz /home/$login/a_sauver/ && chmod a+x /home/$login/sauve_$login.tgz && scp -i $sshkey /home/$login/sauve_$login.tgz $sshlogin@$sship:/home/saves/ && rm /home/$login/sauve_$login.tgz" >> newcron
+    crontab newcron
+    rm newcron
+
 done < <(tail -n +2 accounts.csv)

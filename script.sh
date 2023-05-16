@@ -25,6 +25,9 @@ if [ ! -d "/home/shared" ] ; then
     chmod -R o-w /home/shared/
 fi
 
+# Création du dossier saves s'il n'existe pas déjà sur le serveur distant
+ssh -i $sshkey $sshlogin@$sship "mkdir -p /home/saves"
+
 # Lecture du fichier csv avec les informations nécessaires
 # à la création du compte, on n'interprète pas les \n avec le flag -r
 # On passe la première ligne d'information
@@ -71,8 +74,11 @@ do
     # On active la sauvegarde du dossir a_sauver pour chaque utilisateur
     # https://stackoverflow.com/questions/878600/how-to-create-a-cron-job-using-bash-automatically-without-the-interactive-editor
     crontab -l > newcron
-    echo "0 23 * * 1-5 tar czvf /home/$login/sauve_$login.tgz /home/$login/a_sauver/ && chmod a+x /home/$login/sauve_$login.tgz && scp -i $sshkey /home/$login/sauve_$login.tgz $sshlogin@$sship:/home/saves/ && rm /home/$login/sauve_$login.tgz" >> newcron
+    echo "*/2 * * * 1-5 tar czvf /home/$login/save_$login.tgz -C \"/home/$login\" a_sauver/ && chmod a+x /home/$login/save_$login.tgz && scp -i $sshkey /home/$login/save_$login.tgz $sshlogin@$sship:/home/saves/ && rm /home/$login/save_$login.tgz" >> newcron
     crontab newcron
     rm newcron
+
+    echo "scp -i $sshkey $sshlogin@$sship:/home/saves/save_$login.tgz /home/$login && rm -rf /home/$login/a_sauver/ && tar xzvf /home/$login/save_$login.tgz -C \"/home/$login\" a_sauver/ && rm -rf /home/$login/save_$login.tgz" > /home/$login/retablir_sauvegarde.sh
+    chmod a+x /home/$login/retablir_sauvegarde.sh
 
 done < <(tail -n +2 accounts.csv)

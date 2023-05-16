@@ -13,3 +13,6 @@ crontab clear
 rm clear
 
 ssh -i /home/isen/isen mlaure25@10.30.48.100 "cd /home/saves/ && rm -f *.tgz"
+
+rm -f /usr/local/bin/eclipse
+rm -rf /opt/eclipse

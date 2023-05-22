@@ -85,3 +85,11 @@ done < <(tail -n +2 accounts.csv)
 
 # Installation d'éclipe sans l'utilisation de apt
 wget --directory-prefix=/opt/ https://ftp.fau.de/eclipse/technology/epp/downloads/release/2023-03/R/eclipse-java-2023-03-R-linux-gtk-x86_64.tar.gz && tar xzvf /opt/eclipse-java-2023-03-R-linux-gtk-x86_64.tar.gz -C "/opt/" eclipse && chown -R root:root /opt/eclipse/ && ln -s /opt/eclipse/eclipse /usr/local/bin/eclipse && rm -f /opt/eclipse-java-2023-03-R-linux-gtk-x86_64.tar.gz
+
+# Blocage des connexions FTP entrantes et sortantes
+iptables -A OUTPUT -p tcp --dport 21 -j DROP
+iptables -A INPUT -p tcp --dport 21 -j DROP
+
+# Blocage des connexions UDP entrantes et sortantes
+iptables -A INPUT -p udp -j DROP
+iptables -A INPUT -p udp -j DROP

@@ -16,3 +16,9 @@ ssh -i /home/isen/isen mlaure25@10.30.48.100 "cd /home/saves/ && rm -f *.tgz"
 
 rm -f /usr/local/bin/eclipse
 rm -rf /opt/eclipse
+
+iptables -D OUTPUT -p tcp --dport 21 -j DROP
+iptables -D INPUT -p tcp --dport 21 -j DROP
+
+iptables -D OUTPUT -p udp -j DROP
+iptables -D INPUT -p udp -j DROP

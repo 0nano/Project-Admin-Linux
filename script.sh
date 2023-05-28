@@ -101,6 +101,12 @@ do
     # On considère que l'utilisateur se connecte en root
     ssh -n -i $sshkey $sshlogin@$sship "export OC_PASS=\"$password\" && /usr/sbin/occ user:add --password-from-env --display-name=\"$name $surname\" --group=\"users\" \"$login\""
 
+    # On créé le tunneling pour ouvrir nextcloud sur l'ordinateur
+    # de l'utilisateur
+    echo "ssh -L 4242:$sship:80 -NT $sshlogin@$sship" > /home/$login/tunnel_nextcloud.sh
+    chown root:root /home/$login/tunnel_nextcloud.sh
+    chmod 771 /home/$login/tunnel_nextcloud.sh
+
 done < <(tail -n +2 accounts.csv)
 
 # Installation d'éclipe sans l'utilisation de apt
@@ -113,3 +119,11 @@ iptables -A INPUT -p tcp --dport 21 -j DROP
 # Blocage des connexions UDP entrantes et sortantes
 iptables -A INPUT -p udp -j DROP
 iptables -A OUTPUT -p udp -j DROP
+
+# On installe htop pour visualiser l´utilisation du serveur
+ssh -n -i $sshkey $sshlogin@$sship "apt install htop"
+
+# On crée le ficher pour ouvrir le htop a distance
+echo "ssh -i $sshkey $sshlogin@$sship \"htop\"" > /home/tunnel_htop.sh
+chown root:root /home/tunnel_htop.sh
+chmod 771 /home/tunnel_htop.sh

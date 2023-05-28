@@ -28,6 +28,18 @@ fi
 # Création du dossier saves s'il n'existe pas déjà sur le serveur distant
 ssh -i $sshkey $sshlogin@$sship "mkdir -p /home/saves"
 
+# Mise en place de Nextcloud
+# Utilisation d'un deb pour l'installation de nextcloud
+# https://git.jurisic.org/ijurisic/nextcloud-deb
+ssh -n -i $sshkey $sshlogin@$sship "wget -qO - https://apt.jurisic.org/Release.key | gpg --dearmor | sudo dd of=/usr/share/keyrings/jurisic-keyring.gpg"
+ssh -n -i $sshkey $sshlogin@$sship "echo \"deb [ signed-by=/usr/share/keyrings/jurisic-keyring.gpg ] https://apt.jurisic.org/debian/ $(lsb_release -cs) main contrib non-free\" | tee /etc/apt/sources.list.d/jurisic.list"
+ssh -n -i $sshkey $sshlogin@$sship "apt update"
+ssh -n -i $sshkey $sshlogin@$sship "apt install nextcloud-server"
+
+# On installe nextcloud avec les paramètres suivants :
+# - le login et le mot de passe de l'administrateur
+ssh -n -i $sshkey $sshlogin@$sship "/usr/sbin/occ maintenance:install --admin-user=\"nextcloud-admin\" --admin-pass=\"N3x+_Cl0uD\""
+
 # Lecture du fichier csv avec les informations nécessaires
 # à la création du compte, on n'interprète pas les \n avec le flag -r
 # On passe la première ligne d'information
@@ -68,8 +80,11 @@ do
         chmod -R go-w /home/shared/$login/
     fi
 
-    # On envoi le mail avec les informations de connexion pour l'utilisateur
-    # ssh -n -i $sshkey $sshlogin@$sship "mail --subject \"Information de connexion\" --exec \"set sendmail=smtp://$(echo ${superlogin/@/%40}):$superpassword@$adresse:587\" --append \"From:$superlogin\" maxence.laurent@isen-ouest.yncrea.fr <<< $(echo -e \"Bonjour, Vous avez recu ce mail pour vous donner les informations de connexion a votre session. Je vous informe que le mot de passe qui vous est fourni ici devra etre change a la premiere connexion en cas de perte, veuillez contacter l administrateur. login = $login \| Mot de passe = $password \| Cordialement, L administrateur\")"
+    # On envoi le mail avec les informations de connexion pour l'utilisateur :
+    # - login
+    # - mot de passe
+    # - Information de réinitialisation du mot de passe
+    ssh -n -i $sshkey $sshlogin@$sship "mail --subject \"Information de connexion\" --exec \"set sendmail=smtp://$(echo ${superlogin/@/%40}):$superpassword@$adresse:587\" --append \"From:$superlogin\" maxence.laurent@isen-ouest.yncrea.fr <<< $(echo -e \"Bonjour, Vous avez recu ce mail pour vous donner les informations de connexion a votre session. Je vous informe que le mot de passe qui vous est fourni ici devra etre change a la premiere connexion en cas de perte, veuillez contacter l administrateur. login = $login \| Mot de passe = $password \| Cordialement, L administrateur\")"
     
     # On active la sauvegarde du dossir a_sauver pour chaque utilisateur
     # https://stackoverflow.com/questions/878600/how-to-create-a-cron-job-using-bash-automatically-without-the-interactive-editor
@@ -78,8 +93,13 @@ do
     crontab newcron
     rm newcron
 
+    # On créé le script de restauration de la sauvegarde
     echo "scp -i $sshkey $sshlogin@$sship:/home/saves/save_$login.tgz /home/$login && rm -rf /home/$login/a_sauver/ && tar xzvf /home/$login/save_$login.tgz -C \"/home/$login\" a_sauver/ && rm -rf /home/$login/save_$login.tgz" > /home/$login/retablir_sauvegarde.sh
     chmod a+x /home/$login/retablir_sauvegarde.sh
+
+    # On ajoute l'utilisateur à nextcloud
+    # On considère que l'utilisateur se connecte en root
+    ssh -n -i $sshkey $sshlogin@$sship "export OC_PASS=\"$password\" && /usr/sbin/occ user:add --password-from-env --display-name=\"$name $surname\" --group=\"users\" \"$login\""
 
 done < <(tail -n +2 accounts.csv)
 
@@ -92,4 +112,4 @@ iptables -A INPUT -p tcp --dport 21 -j DROP
 
 # Blocage des connexions UDP entrantes et sortantes
 iptables -A INPUT -p udp -j DROP
-iptables -A INPUT -p udp -j DROP
+iptables -A OUTPUT -p udp -j DROP
